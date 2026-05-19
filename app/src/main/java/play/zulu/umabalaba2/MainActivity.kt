@@ -7,12 +7,14 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import play.zulu.umabalaba2.ui.theme.UMABALABA2Theme
 
 // Data class representing a single position (node) on the Umabalaba board.
@@ -44,6 +46,10 @@ class GameState {
     
     // Observable current player
     var currentPlayer by mutableStateOf(Player.PLAYER_1)
+
+    // Observable player names
+    var player1Name by mutableStateOf("Player 1")
+    var player2Name by mutableStateOf("Player 2")
     
     // Observable state to track if a player needs to remove an opponent's piece
     var mustRemovePiece by mutableStateOf(false)
@@ -53,6 +59,9 @@ class GameState {
 
     // Tracks the currently selected node for movement
     var selectedNodeId by mutableStateOf<Int?>(null)
+
+    // Observable winner
+    var winner by mutableStateOf<Player?>(null)
     
     // Observable piece counts for the placement phase
     var piecesToPlace by mutableStateOf(mapOf(
@@ -102,6 +111,8 @@ class GameState {
 
     // Handles node clicks based on the current game phase
     fun handleNodeClick(nodeId: Int) {
+        if (winner != null) return
+
         if (mustRemovePiece) {
             removePiece(nodeId)
             return
@@ -200,8 +211,45 @@ class GameState {
         // (For simplicity in this version, we allow any opponent piece removal)
         nodes[index] = node.copy(occupant = null)
         mustRemovePiece = false
-        switchTurn()
+        
+        checkWinCondition()
+        if (winner == null) {
+            switchTurn()
+        }
         return true
+    }
+
+    private fun checkWinCondition() {
+        val p1Total = (piecesToPlace[Player.PLAYER_1] ?: 0) + nodes.count { it.occupant == Player.PLAYER_1 }
+        val p2Total = (piecesToPlace[Player.PLAYER_2] ?: 0) + nodes.count { it.occupant == Player.PLAYER_2 }
+
+        if (p2Total < 3) {
+            winner = Player.PLAYER_1
+        } else if (p1Total < 3) {
+            winner = Player.PLAYER_2
+        }
+    }
+
+    fun resetGame() {
+        nodes.clear()
+        initializeBoard()
+        currentPlayer = Player.PLAYER_1
+        mustRemovePiece = false
+        phase = GamePhase.PLACEMENT
+        selectedNodeId = null
+        piecesToPlace = mapOf(
+            Player.PLAYER_1 to 12,
+            Player.PLAYER_2 to 12
+        )
+        winner = null
+    }
+
+    fun getPlayerName(player: Player): String {
+        return if (player == Player.PLAYER_1) player1Name else player2Name
+    }
+
+    fun getPlayerColor(player: Player): Color {
+        return if (player == Player.PLAYER_1) Color.Red else Color.Blue
     }
 
     private fun isNodeInMill(nodeId: Int, player: Player): Boolean {
@@ -253,29 +301,83 @@ fun BoardNode(node: Node, isSelected: Boolean, onClick: () -> Unit) {
 // Main game screen containing the board and UI info
 @Composable
 fun GameScreen(gameState: GameState) {
+    var showNameDialog by remember { mutableStateOf(false) }
+
+    if (showNameDialog) {
+        NameDialog(
+            initialP1 = gameState.player1Name,
+            initialP2 = gameState.player2Name,
+            onConfirm = { p1: String, p2: String ->
+                gameState.player1Name = p1
+                gameState.player2Name = p2
+                gameState.resetGame()
+                showNameDialog = false
+            },
+            onDismiss = { showNameDialog = false }
+        )
+    }
+
     Column(
         modifier = Modifier.fillMaxSize(),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
         // Player Turn and Status Header
-        val statusText = when {
-            gameState.mustRemovePiece -> "MILL! ${gameState.currentPlayer} shoot a cow!"
-            gameState.phase == GamePhase.PLACEMENT -> "PLACEMENT: ${gameState.currentPlayer}"
-            else -> "MOVEMENT: ${gameState.currentPlayer}"
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val currentPlayerName = gameState.getPlayerName(gameState.currentPlayer)
+            val currentPlayerColor = gameState.getPlayerColor(gameState.currentPlayer)
+
+            when {
+                gameState.winner != null -> {
+                    val winnerName = gameState.getPlayerName(gameState.winner!!)
+                    val winnerColor = gameState.getPlayerColor(gameState.winner!!)
+                    Text("GAME OVER: ", fontWeight = FontWeight.Bold)
+                    Text(winnerName, color = winnerColor, fontWeight = FontWeight.Bold)
+                    Text(" WINS!", fontWeight = FontWeight.Bold)
+                }
+                gameState.mustRemovePiece -> {
+                    Text("MILL! ", color = Color.Magenta, fontWeight = FontWeight.Bold)
+                    Text(currentPlayerName, color = currentPlayerColor, fontWeight = FontWeight.Bold)
+                    Text(" shoot a cow!")
+                }
+                gameState.phase == GamePhase.PLACEMENT -> {
+                    Text("PLACEMENT: ")
+                    Text(currentPlayerName, color = currentPlayerColor, fontWeight = FontWeight.Bold)
+                }
+                else -> {
+                    Text("MOVEMENT: ")
+                    Text(currentPlayerName, color = currentPlayerColor, fontWeight = FontWeight.Bold)
+                }
+            }
         }
         
-        Text(statusText, modifier = Modifier.padding(16.dp), color = if (gameState.mustRemovePiece) Color.Magenta else Color.Black)
+        Spacer(modifier = Modifier.height(8.dp))
         
-        if (gameState.phase == GamePhase.PLACEMENT) {
-            Text("P1 Cows: ${gameState.piecesToPlace[Player.PLAYER_1]} | P2 Cows: ${gameState.piecesToPlace[Player.PLAYER_2]}")
-        } else {
-            val p1Count = gameState.nodes.count { it.occupant == Player.PLAYER_1 }
-            val p2Count = gameState.nodes.count { it.occupant == Player.PLAYER_2 }
-            Text("P1 Cows: $p1Count | P2 Cows: $p2Count")
+        Row {
+            Text(gameState.player1Name, color = Color.Red)
+            Text(" Cows: ")
+            if (gameState.phase == GamePhase.PLACEMENT) {
+                Text("${gameState.piecesToPlace[Player.PLAYER_1]}")
+            } else {
+                Text("${gameState.nodes.count { it.occupant == Player.PLAYER_1 }}")
+            }
+            Text(" | ")
+            Text(gameState.player2Name, color = Color.Blue)
+            Text(" Cows: ")
+            if (gameState.phase == GamePhase.PLACEMENT) {
+                Text("${gameState.piecesToPlace[Player.PLAYER_2]}")
+            } else {
+                Text("${gameState.nodes.count { it.occupant == Player.PLAYER_2 }}")
+            }
         }
 
-        Spacer(modifier = Modifier.height(32.dp))
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Button(onClick = { showNameDialog = true }) {
+            Text(if (gameState.winner != null) "Play Again" else "Reset Game")
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
 
         // Nested Grid Board Layout
         BoxWithConstraints(
@@ -306,6 +408,49 @@ fun GameScreen(gameState: GameState) {
             }
         }
     }
+}
+
+@Composable
+fun NameDialog(
+    initialP1: String,
+    initialP2: String,
+    onConfirm: (String, String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var p1Name by remember { mutableStateOf(initialP1) }
+    var p2Name by remember { mutableStateOf(initialP2) }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text("Enter Player Names") },
+        text = {
+            Column {
+                OutlinedTextField(
+                    value = p1Name,
+                    onValueChange = { p1Name = it },
+                    label = { Text("Player 1 (Red)") },
+                    singleLine = true
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = p2Name,
+                    onValueChange = { p2Name = it },
+                    label = { Text("Player 2 (Blue)") },
+                    singleLine = true
+                )
+            }
+        },
+        confirmButton = {
+            Button(onClick = { onConfirm(p1Name, p2Name) }) {
+                Text("Start Game")
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text("Cancel")
+            }
+        }
+    )
 }
 
 class MainActivity : ComponentActivity() {
