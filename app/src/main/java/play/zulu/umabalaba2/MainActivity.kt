@@ -31,13 +31,28 @@ enum class Player {
     PLAYER_2  // Blue Cows
 }
 
+// Enum defining the phases of the game
+enum class GamePhase {
+    PLACEMENT, // Phase 1: Placing 12 cows each
+    MOVEMENT   // Phase 2: Moving cows on the board
+}
+
 // Class to manage the state and logic of the Umabalaba game
 class GameState {
     // Observable list of nodes to trigger UI recomposition when a node changes
     val nodes = mutableStateListOf<Node>()
     
-    // Observable current player using delegated property
+    // Observable current player
     var currentPlayer by mutableStateOf(Player.PLAYER_1)
+    
+    // Observable state to track if a player needs to remove an opponent's piece
+    var mustRemovePiece by mutableStateOf(false)
+
+    // Observable current game phase
+    var phase by mutableStateOf(GamePhase.PLACEMENT)
+
+    // Tracks the currently selected node for movement
+    var selectedNodeId by mutableStateOf<Int?>(null)
     
     // Observable piece counts for the placement phase
     var piecesToPlace by mutableStateOf(mapOf(
@@ -45,23 +60,32 @@ class GameState {
         Player.PLAYER_2 to 12
     ))
 
+    // Define all possible mills (triplets of node IDs)
+    private val MILLS = listOf(
+        // Outer Square
+        listOf(0, 1, 2), listOf(2, 3, 4), listOf(4, 5, 6), listOf(6, 7, 0),
+        // Middle Square
+        listOf(8, 9, 10), listOf(10, 11, 12), listOf(12, 13, 14), listOf(14, 15, 8),
+        // Inner Square
+        listOf(16, 17, 18), listOf(18, 19, 20), listOf(20, 21, 22), listOf(22, 23, 16),
+        // Cross lines (top, right, bottom, left)
+        listOf(1, 9, 17), listOf(3, 11, 19), listOf(5, 13, 21), listOf(7, 15, 23),
+        // Diagonals (top-left, top-right, bottom-right, bottom-left)
+        listOf(0, 8, 16), listOf(2, 10, 18), listOf(4, 12, 20), listOf(6, 14, 22)
+    )
+
     init {
         initializeBoard()
     }
 
-    // Sets up the 24 nodes with their Umabalaba grid coordinates and connections
     private fun initializeBoard() {
-        // 7x7 Grid Coordinates for the three nested squares
+        // (same coordinates and adjacency as before)
         val coords = listOf(
-            // Outer Square (0-7)
             Pair(0, 0), Pair(3, 0), Pair(6, 0), Pair(6, 3), Pair(6, 6), Pair(3, 6), Pair(0, 6), Pair(0, 3),
-            // Middle Square (8-15)
             Pair(1, 1), Pair(3, 1), Pair(5, 1), Pair(5, 3), Pair(5, 5), Pair(3, 5), Pair(1, 5), Pair(1, 3),
-            // Inner Square (16-23)
             Pair(2, 2), Pair(3, 2), Pair(4, 2), Pair(4, 3), Pair(4, 4), Pair(3, 4), Pair(2, 4), Pair(2, 3)
         )
 
-        // Adjacency mapping for standard Morabaraba/Umabalaba board (including diagonals)
         val adj = mapOf(
             0 to listOf(1, 7, 8), 1 to listOf(0, 2, 9), 2 to listOf(1, 3, 10), 3 to listOf(2, 4, 11),
             4 to listOf(3, 5, 12), 5 to listOf(4, 6, 13), 6 to listOf(5, 7, 14), 7 to listOf(6, 0, 15),
@@ -76,29 +100,115 @@ class GameState {
         }
     }
 
-    // Handles the logic for placing a piece on the board
-    fun placePiece(nodeId: Int): Boolean {
+    // Handles node clicks based on the current game phase
+    fun handleNodeClick(nodeId: Int) {
+        if (mustRemovePiece) {
+            removePiece(nodeId)
+            return
+        }
+
+        if (phase == GamePhase.PLACEMENT) {
+            placePiece(nodeId)
+        } else {
+            handleMovement(nodeId)
+        }
+    }
+
+    private fun placePiece(nodeId: Int): Boolean {
+        val index = nodes.indexOfFirst { it.id == nodeId }
+        if (index == -1 || nodes[index].occupant != null) return false
+
+        val remaining = piecesToPlace[currentPlayer] ?: 0
+        if (remaining <= 0) return false
+
+        // Place the piece
+        nodes[index] = nodes[index].copy(occupant = currentPlayer)
+        piecesToPlace = piecesToPlace.toMutableMap().apply { put(currentPlayer, remaining - 1) }
+
+        // Check if all pieces are placed to transition phase
+        if (piecesToPlace.values.all { it == 0 }) {
+            phase = GamePhase.MOVEMENT
+        }
+
+        // Check for new mill
+        if (isNodeInMill(nodeId, currentPlayer)) {
+            mustRemovePiece = true // Trigger removal phase
+        } else {
+            switchTurn()
+        }
+        return true
+    }
+
+    private fun handleMovement(nodeId: Int) {
+        val node = nodes.find { it.id == nodeId } ?: return
+        
+        if (selectedNodeId == null) {
+            // First click: Select one of your own pieces
+            if (node.occupant == currentPlayer) {
+                selectedNodeId = nodeId
+            }
+        } else {
+            // Second click: Try to move or change selection
+            if (node.occupant == currentPlayer) {
+                // Change selection
+                selectedNodeId = nodeId
+            } else if (node.occupant == null) {
+                // Try to move to the empty node
+                if (movePiece(selectedNodeId!!, nodeId)) {
+                    selectedNodeId = null
+                }
+            }
+        }
+    }
+
+    private fun movePiece(fromId: Int, toId: Int): Boolean {
+        val fromIndex = nodes.indexOfFirst { it.id == fromId }
+        val toIndex = nodes.indexOfFirst { it.id == toId }
+        val fromNode = nodes[fromIndex]
+        val playerCows = nodes.count { it.occupant == currentPlayer }
+
+        // Rule: Can move to adjacent node OR fly if you have exactly 3 cows left
+        val isAdjacent = fromNode.connections.contains(toId)
+        val canFly = playerCows == 3
+
+        if (isAdjacent || canFly) {
+            // Perform movement
+            nodes[fromIndex] = nodes[fromIndex].copy(occupant = null)
+            nodes[toIndex] = nodes[toIndex].copy(occupant = currentPlayer)
+
+            // Check for new mill at the destination
+            if (isNodeInMill(toId, currentPlayer)) {
+                mustRemovePiece = true
+            } else {
+                switchTurn()
+            }
+            return true
+        }
+        return false
+    }
+
+    private fun removePiece(nodeId: Int): Boolean {
         val index = nodes.indexOfFirst { it.id == nodeId }
         if (index == -1) return false
         val node = nodes[index]
 
-        // Invalid if already occupied
-        if (node.occupant != null) return false
+        // Can only remove opponent's piece
+        val opponent = if (currentPlayer == Player.PLAYER_1) Player.PLAYER_2 else Player.PLAYER_1
+        if (node.occupant != opponent) return false
 
-        // Invalid if no pieces left to place for current player
-        val remaining = piecesToPlace[currentPlayer] ?: 0
-        if (remaining <= 0) return false
-
-        // Update the node in the observable list to trigger a UI refresh
-        nodes[index] = node.copy(occupant = currentPlayer)
-
-        // Update the piece count map with a new instance to trigger state change
-        piecesToPlace = piecesToPlace.toMutableMap().apply {
-            put(currentPlayer, remaining - 1)
-        }
-
+        // Basic rule: You can't remove a piece that's in a mill unless all are in mills
+        // (For simplicity in this version, we allow any opponent piece removal)
+        nodes[index] = node.copy(occupant = null)
+        mustRemovePiece = false
         switchTurn()
         return true
+    }
+
+    private fun isNodeInMill(nodeId: Int, player: Player): Boolean {
+        // Find all mills that include this node
+        return MILLS.filter { it.contains(nodeId) }.any { mill ->
+            mill.all { id -> nodes.find { it.id == id }?.occupant == player }
+        }
     }
 
     private fun switchTurn() {
@@ -108,19 +218,36 @@ class GameState {
 
 // Visual representation of a single node
 @Composable
-fun BoardNode(node: Node, onClick: () -> Unit) {
+fun BoardNode(node: Node, isSelected: Boolean, onClick: () -> Unit) {
     val color = when (node.occupant) {
         Player.PLAYER_1 -> Color.Red
         Player.PLAYER_2 -> Color.Blue
         null -> Color.LightGray
     }
 
+    // Outer box for the "selection" ring
     Box(
+        contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(32.dp) // Size of the "cow" or hole
-            .background(color, shape = CircleShape)
+            .size(40.dp) // Slightly larger to allow for selection ring
             .clickable { onClick() }
-    )
+    ) {
+        if (isSelected) {
+            // Selection ring
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Yellow, shape = CircleShape)
+            )
+        }
+        
+        // The actual cow/hole
+        Box(
+            modifier = Modifier
+                .size(32.dp)
+                .background(color, shape = CircleShape)
+        )
+    }
 }
 
 // Main game screen containing the board and UI info
@@ -132,8 +259,21 @@ fun GameScreen(gameState: GameState) {
         verticalArrangement = Arrangement.Center
     ) {
         // Player Turn and Status Header
-        Text("Turn: ${gameState.currentPlayer}", modifier = Modifier.padding(16.dp))
-        Text("P1 Cows: ${gameState.piecesToPlace[Player.PLAYER_1]} | P2 Cows: ${gameState.piecesToPlace[Player.PLAYER_2]}")
+        val statusText = when {
+            gameState.mustRemovePiece -> "MILL! ${gameState.currentPlayer} shoot a cow!"
+            gameState.phase == GamePhase.PLACEMENT -> "PLACEMENT: ${gameState.currentPlayer}"
+            else -> "MOVEMENT: ${gameState.currentPlayer}"
+        }
+        
+        Text(statusText, modifier = Modifier.padding(16.dp), color = if (gameState.mustRemovePiece) Color.Magenta else Color.Black)
+        
+        if (gameState.phase == GamePhase.PLACEMENT) {
+            Text("P1 Cows: ${gameState.piecesToPlace[Player.PLAYER_1]} | P2 Cows: ${gameState.piecesToPlace[Player.PLAYER_2]}")
+        } else {
+            val p1Count = gameState.nodes.count { it.occupant == Player.PLAYER_1 }
+            val p2Count = gameState.nodes.count { it.occupant == Player.PLAYER_2 }
+            Text("P1 Cows: $p1Count | P2 Cows: $p2Count")
+        }
 
         Spacer(modifier = Modifier.height(32.dp))
 
@@ -152,12 +292,15 @@ fun GameScreen(gameState: GameState) {
                 Box(
                     modifier = Modifier
                         .offset(
-                            x = step * node.x - 16.dp, // Center the 32.dp node on the point
-                            y = step * node.y - 16.dp
+                            x = step * node.x - 20.dp, // Center the 40.dp node on the point
+                            y = step * node.y - 20.dp
                         )
                 ) {
-                    BoardNode(node) {
-                        gameState.placePiece(node.id)
+                    BoardNode(
+                        node = node, 
+                        isSelected = gameState.selectedNodeId == node.id
+                    ) {
+                        gameState.handleNodeClick(node.id)
                     }
                 }
             }
