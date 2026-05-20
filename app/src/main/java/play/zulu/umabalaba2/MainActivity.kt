@@ -14,7 +14,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.Dialog
 import play.zulu.umabalaba2.ui.theme.UMABALABA2Theme
 
 // Data class representing a single position (node) on the Umabalaba board.
@@ -62,6 +61,9 @@ class GameState {
 
     // Observable winner
     var winner by mutableStateOf<Player?>(null)
+
+    // Observable name dialog state
+    var showNameDialog by mutableStateOf(false)
     
     // Observable piece counts for the placement phase
     var piecesToPlace by mutableStateOf(mapOf(
@@ -301,9 +303,7 @@ fun BoardNode(node: Node, isSelected: Boolean, onClick: () -> Unit) {
 // Main game screen containing the board and UI info
 @Composable
 fun GameScreen(gameState: GameState) {
-    var showNameDialog by remember { mutableStateOf(false) }
-
-    if (showNameDialog) {
+    if (gameState.showNameDialog) {
         NameDialog(
             initialP1 = gameState.player1Name,
             initialP2 = gameState.player2Name,
@@ -311,9 +311,9 @@ fun GameScreen(gameState: GameState) {
                 gameState.player1Name = p1
                 gameState.player2Name = p2
                 gameState.resetGame()
-                showNameDialog = false
+                gameState.showNameDialog = false
             },
-            onDismiss = { showNameDialog = false }
+            onDismiss = { gameState.showNameDialog = false }
         )
     }
 
@@ -373,7 +373,7 @@ fun GameScreen(gameState: GameState) {
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Button(onClick = { showNameDialog = true }) {
+        Button(onClick = { gameState.showNameDialog = true }) {
             Text(if (gameState.winner != null) "Play Again" else "Reset Game")
         }
 
