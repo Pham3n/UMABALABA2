@@ -40,6 +40,14 @@ enum class GamePhase {
     MOVEMENT   // Phase 2: Moving cows on the board
 }
 
+// Enum for game modes
+enum class GameMode {
+    LOCAL,
+    BLUETOOTH,
+    WIFI,
+    ONLINE
+}
+
 // Class to manage the state and logic of the Umabalaba game
 class GameState {
     // Observable list of nodes to trigger UI recomposition when a node changes
@@ -66,6 +74,16 @@ class GameState {
 
     // Observable name dialog state
     var showNameDialog by mutableStateOf(false)
+
+    // Connection states
+    var gameMode by mutableStateOf(GameMode.LOCAL)
+    var isHost by mutableStateOf(true)
+    var connectionStatus by mutableStateOf("Local Game")
+
+    // Connection Managers
+    lateinit var bluetoothManager: BluetoothManager
+    lateinit var wifiManager: WiFiManager
+    lateinit var onlineManager: OnlineServerManager
     
     // Observable piece resources (images from drawables)
     var player1PieceRes by mutableIntStateOf(R.drawable.redb)
@@ -388,6 +406,11 @@ class MainActivity : ComponentActivity() {
         
         // Initialize state once per activity lifecycle
         val gameState = GameState()
+        
+        // Initialize Managers
+        gameState.bluetoothManager = BluetoothManager(this, gameState)
+        gameState.wifiManager = WiFiManager(this, gameState)
+        gameState.onlineManager = OnlineServerManager(gameState)
         
         setContent {
             UMABALABA2Theme {

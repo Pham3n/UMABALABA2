@@ -1,14 +1,18 @@
 package play.zulu.umabalaba2
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -18,9 +22,13 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 
 @Composable
 fun UmlabalabaScreen(gameState: GameState) {
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
+    val scope = rememberCoroutineScope()
+
     if (gameState.showNameDialog) {
         NameDialog(
             initialP1 = gameState.player1Name,
@@ -35,146 +43,280 @@ fun UmlabalabaScreen(gameState: GameState) {
         )
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFF1B120B))
-            .padding(12.dp)
-    ) {
-        // ===== TOP SECTION: CHAT BOX =====
-        ChatBox(modifier = Modifier.height(110.dp))
-
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // ===== MAIN CONTENT: BOARD + SIDE PANEL =====
-        Row(
-            modifier = Modifier.weight(1f)
-        ) {
-            // ===== BOARD =====
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .fillMaxHeight()
-                    .background(
-                        Color(0xFF8B5E3C),
-                        RoundedCornerShape(16.dp)
-                    )
-                    .padding(16.dp),
-                contentAlignment = Alignment.Center
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            ModalDrawerSheet(
+                drawerContainerColor = Color(0xFF1B120B),
+                drawerShape = RoundedCornerShape(0.dp)
             ) {
-                UmlabalabaBoard(
-                    modifier = Modifier.aspectRatio(1f).fillMaxSize()
-                )
-                
-                // Render nodes on top of the board
-                BoxWithConstraints(modifier = Modifier.aspectRatio(1f).fillMaxSize()) {
-                    val boardSize = maxWidth
-                    val step = boardSize / 6
+                SidebarContent(gameState)
+            }
+        }
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Color(0xFF1B120B))
+                .padding(12.dp)
+        ) {
+            // ===== TOP SECTION: CHAT BOX & MENU =====
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                    Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color(0xFFD6B37A))
+                }
+                ChatBox(modifier = Modifier.weight(1f).height(110.dp))
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ===== MAIN CONTENT: BOARD + SIDE PANEL =====
+            Row(
+                modifier = Modifier.weight(1f)
+            ) {
+                // ===== BOARD =====
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .background(
+                            Color(0xFF8B5E3C),
+                            RoundedCornerShape(16.dp)
+                        )
+                        .padding(16.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    UmlabalabaBoard(
+                        modifier = Modifier.aspectRatio(1f).fillMaxSize()
+                    )
                     
-                    gameState.nodes.forEach { node ->
-                        Box(
-                            modifier = Modifier
-                                .offset(
-                                    x = step * node.x - 20.dp,
-                                    y = step * node.y - 20.dp
-                                )
-                        ) {
-                            BoardNode(
-                                node = node, 
-                                gameState = gameState,
-                                isSelected = gameState.selectedNodeId == node.id
+                    // Render nodes on top of the board
+                    BoxWithConstraints(modifier = Modifier.aspectRatio(1f).fillMaxSize()) {
+                        val boardSize = maxWidth
+                        val step = boardSize / 6
+                        
+                        gameState.nodes.forEach { node ->
+                            Box(
+                                modifier = Modifier
+                                    .offset(
+                                        x = step * node.x - 20.dp,
+                                        y = step * node.y - 20.dp
+                                    )
                             ) {
-                                gameState.handleNodeClick(node.id)
+                                BoardNode(
+                                    node = node, 
+                                    gameState = gameState,
+                                    isSelected = gameState.selectedNodeId == node.id
+                                ) {
+                                    gameState.handleNodeClick(node.id)
+                                }
                             }
                         }
                     }
                 }
+
+                Spacer(modifier = Modifier.width(12.dp))
+
+                // ===== SIDE PANEL =====
+                Column(
+                    modifier = Modifier.width(110.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    SideCard(
+                        title = "PHASE",
+                        content = if (gameState.mustRemovePiece) "SHOOT" else gameState.phase.name
+                    )
+
+                    SideCard(
+                        title = "TURN",
+                        content = if (gameState.winner != null) "OVER" else gameState.getPlayerName(gameState.currentPlayer).uppercase()
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
-            // ===== SIDE PANEL =====
-            Column(
-                modifier = Modifier.width(110.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+            // ===== PLAYER INDICATORS (Row of 2) =====
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                SideCard(
-                    title = "PHASE",
-                    content = if (gameState.mustRemovePiece) "SHOOT" else gameState.phase.name
+                val p1Active = gameState.currentPlayer == Player.PLAYER_1
+                val p2Active = gameState.currentPlayer == Player.PLAYER_2
+
+                PlayerPanel(
+                    modifier = Modifier.weight(1f),
+                    name = gameState.player1Name,
+                    pieces = if (gameState.phase == GamePhase.PLACEMENT) 
+                        gameState.piecesToPlace[Player.PLAYER_1] ?: 0 
+                        else gameState.nodes.count { it.occupant == Player.PLAYER_1 },
+                    mills = 0,
+                    isActive = p1Active,
+                    pieceRes = gameState.getPlayerPieceRes(Player.PLAYER_1),
+                    textColor = gameState.getPlayerTextColor(Player.PLAYER_1)
                 )
 
-                SideCard(
-                    title = "TURN",
-                    content = if (gameState.winner != null) "OVER" else gameState.getPlayerName(gameState.currentPlayer).uppercase()
+                PlayerPanel(
+                    modifier = Modifier.weight(1f),
+                    name = gameState.player2Name,
+                    pieces = if (gameState.phase == GamePhase.PLACEMENT) 
+                        gameState.piecesToPlace[Player.PLAYER_2] ?: 0 
+                        else gameState.nodes.count { it.occupant == Player.PLAYER_2 },
+                    mills = 0,
+                    isActive = p2Active,
+                    pieceRes = gameState.getPlayerPieceRes(Player.PLAYER_2),
+                    textColor = gameState.getPlayerTextColor(Player.PLAYER_2)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ===== ACTION BUTTONS =====
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                GameButton("NEW") { gameState.showNameDialog = true }
+                GameButton("UNDO") { }
+                GameButton("PASS") { }
+                GameButton("RESIGN") { }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // ===== BOTTOM INFO CARDS =====
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                BottomInfoCard(
+                    modifier = Modifier.weight(1f),
+                    title = "MODE",
+                    content = gameState.gameMode.name
+                )
+                BottomInfoCard(
+                    modifier = Modifier.weight(1f),
+                    title = "STATUS",
+                    content = gameState.connectionStatus
                 )
             }
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(12.dp))
+@Composable
+fun SidebarContent(gameState: GameState) {
+    var expandedMode by remember { mutableStateOf<GameMode?>(null) }
 
-        // ===== PLAYER INDICATORS (Row of 2) =====
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            val p1Active = gameState.currentPlayer == Player.PLAYER_1
-            val p2Active = gameState.currentPlayer == Player.PLAYER_2
+    Column(
+        modifier = Modifier
+            .fillMaxHeight()
+            .width(280.dp)
+            .padding(24.dp)
+    ) {
+        Text(
+            "GAME MODES",
+            color = Color(0xFFD6B37A),
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            modifier = Modifier.padding(bottom = 24.dp)
+        )
 
-            PlayerPanel(
-                modifier = Modifier.weight(1f),
-                name = gameState.player1Name,
-                pieces = if (gameState.phase == GamePhase.PLACEMENT) 
-                    gameState.piecesToPlace[Player.PLAYER_1] ?: 0 
-                    else gameState.nodes.count { it.occupant == Player.PLAYER_1 },
-                mills = 0,
-                isActive = p1Active,
-                pieceRes = gameState.getPlayerPieceRes(Player.PLAYER_1),
-                textColor = gameState.getPlayerTextColor(Player.PLAYER_1)
-            )
+        ModeItem(
+            title = "LOCAL PLAY",
+            icon = Icons.Default.Person,
+            isSelected = gameState.gameMode == GameMode.LOCAL,
+            onClick = {
+                gameState.gameMode = GameMode.LOCAL
+                gameState.connectionStatus = "Local Game"
+                expandedMode = null
+            }
+        )
 
-            PlayerPanel(
-                modifier = Modifier.weight(1f),
-                name = gameState.player2Name,
-                pieces = if (gameState.phase == GamePhase.PLACEMENT) 
-                    gameState.piecesToPlace[Player.PLAYER_2] ?: 0 
-                    else gameState.nodes.count { it.occupant == Player.PLAYER_2 },
-                mills = 0,
-                isActive = p2Active,
-                pieceRes = gameState.getPlayerPieceRes(Player.PLAYER_2),
-                textColor = gameState.getPlayerTextColor(Player.PLAYER_2)
-            )
+        ModeItem(
+            title = "BLUETOOTH",
+            icon = Icons.Default.Bluetooth,
+            isSelected = gameState.gameMode == GameMode.BLUETOOTH,
+            onClick = {
+                expandedMode = if (expandedMode == GameMode.BLUETOOTH) null else GameMode.BLUETOOTH
+            }
+        )
+        AnimatedVisibility(visible = expandedMode == GameMode.BLUETOOTH) {
+            Column(modifier = Modifier.padding(start = 32.dp)) {
+                SubModeItem("Host Game") {
+                    gameState.gameMode = GameMode.BLUETOOTH
+                    gameState.isHost = true
+                    gameState.bluetoothManager.hostGame()
+                }
+                SubModeItem("Join Game") {
+                    gameState.gameMode = GameMode.BLUETOOTH
+                    gameState.isHost = false
+                    gameState.bluetoothManager.joinGame()
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
-
-        // ===== ACTION BUTTONS =====
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            GameButton("NEW") { gameState.showNameDialog = true }
-            GameButton("UNDO") { }
-            GameButton("PASS") { }
-            GameButton("RESIGN") { }
+        ModeItem(
+            title = "WIFI DIRECT",
+            icon = Icons.Default.Wifi,
+            isSelected = gameState.gameMode == GameMode.WIFI,
+            onClick = {
+                expandedMode = if (expandedMode == GameMode.WIFI) null else GameMode.WIFI
+            }
+        )
+        AnimatedVisibility(visible = expandedMode == GameMode.WIFI) {
+            Column(modifier = Modifier.padding(start = 32.dp)) {
+                SubModeItem("Host Game") {
+                    gameState.gameMode = GameMode.WIFI
+                    gameState.isHost = true
+                    gameState.wifiManager.hostGame()
+                }
+                SubModeItem("Join Game") {
+                    gameState.gameMode = GameMode.WIFI
+                    gameState.isHost = false
+                    gameState.wifiManager.joinGame()
+                }
+            }
         }
 
-        Spacer(modifier = Modifier.height(8.dp))
+        ModeItem(
+            title = "ONLINE PLAY",
+            icon = Icons.Default.Public,
+            isSelected = gameState.gameMode == GameMode.ONLINE,
+            onClick = {
+                gameState.gameMode = GameMode.ONLINE
+                gameState.onlineManager.connect()
+                expandedMode = null
+            }
+        )
+    }
+}
 
-        // ===== BOTTOM INFO CARDS =====
+@Composable
+fun ModeItem(title: String, icon: androidx.compose.ui.graphics.vector.ImageVector, isSelected: Boolean, onClick: () -> Unit) {
+    Surface(
+        onClick = onClick,
+        color = if (isSelected) Color(0xFF5A3822) else Color.Transparent,
+        shape = RoundedCornerShape(8.dp),
+        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)
+    ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(12.dp),
+            verticalAlignment = Alignment.CenterVertically
         ) {
-            BottomInfoCard(
-                modifier = Modifier.weight(1f),
-                title = "WINNER",
-                content = gameState.winner?.name ?: "---"
-            )
-            BottomInfoCard(
-                modifier = Modifier.weight(1f),
-                title = "INFO",
-                content = "Reduce to 2 cows"
-            )
+            Icon(icon, contentDescription = null, tint = if (isSelected) Color.White else Color(0xFFD6B37A))
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(title, color = Color.White, fontWeight = FontWeight.Bold)
+        }
+    }
+}
+
+@Composable
+fun SubModeItem(title: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, modifier = Modifier.fillMaxWidth()) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Icon(Icons.Default.ArrowRight, contentDescription = null, tint = Color(0xFFD6B37A))
+            Text(title, color = Color.LightGray)
         }
     }
 }
