@@ -3,6 +3,7 @@ package play.zulu.umabalaba2
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -12,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import play.zulu.umabalaba2.ui.theme.UMABALABA2Theme
@@ -65,6 +67,10 @@ class GameState {
     // Observable name dialog state
     var showNameDialog by mutableStateOf(false)
     
+    // Observable piece resources (images from drawables)
+    var player1PieceRes by mutableIntStateOf(R.drawable.redb)
+    var player2PieceRes by mutableIntStateOf(R.drawable.blueb)
+
     // Observable piece counts for the placement phase
     var piecesToPlace by mutableStateOf(mapOf(
         Player.PLAYER_1 to 12,
@@ -86,6 +92,14 @@ class GameState {
     )
 
     init {
+        val pieces = listOf(
+            R.drawable.redb,
+            R.drawable.blueb,
+            R.drawable.blackb,
+            R.drawable.whiteb
+        ).shuffled()
+        player1PieceRes = pieces[0]
+        player2PieceRes = pieces[1]
         initializeBoard()
     }
 
@@ -254,6 +268,29 @@ class GameState {
         return if (player == Player.PLAYER_1) Color.Red else Color.Blue
     }
 
+    fun getPlayerPieceRes(player: Player): Int {
+        return if (player == Player.PLAYER_1) player1PieceRes else player2PieceRes
+    }
+
+    fun getPlayerTextColor(player: Player): Color {
+        val res = getPlayerPieceRes(player)
+        return when (res) {
+            R.drawable.redb -> Color.Red
+            R.drawable.blueb -> Color(0xFF2196F3) // Better Blue for dark BG
+            R.drawable.blackb -> Color.LightGray // White/Gray for Black piece on dark BG
+            R.drawable.whiteb -> Color.White
+            else -> Color.White
+        }
+    }
+
+    fun assignPlayerPiece(player: Player, resId: Int) {
+        if (player == Player.PLAYER_1) {
+            player1PieceRes = resId
+        } else {
+            player2PieceRes = resId
+        }
+    }
+
     private fun isNodeInMill(nodeId: Int, player: Player): Boolean {
         // Find all mills that include this node
         return MILLS.filter { it.contains(nodeId) }.any { mill ->
@@ -268,13 +305,7 @@ class GameState {
 
 // Visual representation of a single node
 @Composable
-fun BoardNode(node: Node, isSelected: Boolean, onClick: () -> Unit) {
-    val color = when (node.occupant) {
-        Player.PLAYER_1 -> Color.Red
-        Player.PLAYER_2 -> Color.Blue
-        null -> Color.LightGray
-    }
-
+fun BoardNode(node: Node, gameState: GameState, isSelected: Boolean, onClick: () -> Unit) {
     // Outer box for the "selection" ring
     Box(
         contentAlignment = Alignment.Center,
@@ -292,120 +323,18 @@ fun BoardNode(node: Node, isSelected: Boolean, onClick: () -> Unit) {
         }
         
         // The actual cow/hole
-        Box(
-            modifier = Modifier
-                .size(32.dp)
-                .background(color, shape = CircleShape)
-        )
-    }
-}
-
-// Main game screen containing the board and UI info
-@Composable
-fun GameScreen(gameState: GameState) {
-    if (gameState.showNameDialog) {
-        NameDialog(
-            initialP1 = gameState.player1Name,
-            initialP2 = gameState.player2Name,
-            onConfirm = { p1: String, p2: String ->
-                gameState.player1Name = p1
-                gameState.player2Name = p2
-                gameState.resetGame()
-                gameState.showNameDialog = false
-            },
-            onDismiss = { gameState.showNameDialog = false }
-        )
-    }
-
-    Column(
-        modifier = Modifier.fillMaxSize(),
-        horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.Center
-    ) {
-        // Player Turn and Status Header
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            val currentPlayerName = gameState.getPlayerName(gameState.currentPlayer)
-            val currentPlayerColor = gameState.getPlayerColor(gameState.currentPlayer)
-
-            when {
-                gameState.winner != null -> {
-                    val winnerName = gameState.getPlayerName(gameState.winner!!)
-                    val winnerColor = gameState.getPlayerColor(gameState.winner!!)
-                    Text("GAME OVER: ", fontWeight = FontWeight.Bold)
-                    Text(winnerName, color = winnerColor, fontWeight = FontWeight.Bold)
-                    Text(" WINS!", fontWeight = FontWeight.Bold)
-                }
-                gameState.mustRemovePiece -> {
-                    Text("MILL! ", color = Color.Magenta, fontWeight = FontWeight.Bold)
-                    Text(currentPlayerName, color = currentPlayerColor, fontWeight = FontWeight.Bold)
-                    Text(" shoot a cow!")
-                }
-                gameState.phase == GamePhase.PLACEMENT -> {
-                    Text("PLACEMENT: ")
-                    Text(currentPlayerName, color = currentPlayerColor, fontWeight = FontWeight.Bold)
-                }
-                else -> {
-                    Text("MOVEMENT: ")
-                    Text(currentPlayerName, color = currentPlayerColor, fontWeight = FontWeight.Bold)
-                }
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Row {
-            Text(gameState.player1Name, color = Color.Red)
-            Text(" Cows: ")
-            if (gameState.phase == GamePhase.PLACEMENT) {
-                Text("${gameState.piecesToPlace[Player.PLAYER_1]}")
-            } else {
-                Text("${gameState.nodes.count { it.occupant == Player.PLAYER_1 }}")
-            }
-            Text(" | ")
-            Text(gameState.player2Name, color = Color.Blue)
-            Text(" Cows: ")
-            if (gameState.phase == GamePhase.PLACEMENT) {
-                Text("${gameState.piecesToPlace[Player.PLAYER_2]}")
-            } else {
-                Text("${gameState.nodes.count { it.occupant == Player.PLAYER_2 }}")
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Button(onClick = { gameState.showNameDialog = true }) {
-            Text(if (gameState.winner != null) "Play Again" else "Reset Game")
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Nested Grid Board Layout
-        BoxWithConstraints(
-            modifier = Modifier
-                .aspectRatio(1f) // Ensure the board is square
-                .fillMaxWidth()
-                .padding(32.dp) // Leave space for nodes at the edges
-        ) {
-            val boardSize = maxWidth
-            val step = boardSize / 6 // Calculate distance between points on the 7x7 grid
-
-            // Render each node at its specific grid coordinate
-            gameState.nodes.forEach { node ->
-                Box(
-                    modifier = Modifier
-                        .offset(
-                            x = step * node.x - 20.dp, // Center the 40.dp node on the point
-                            y = step * node.y - 20.dp
-                        )
-                ) {
-                    BoardNode(
-                        node = node, 
-                        isSelected = gameState.selectedNodeId == node.id
-                    ) {
-                        gameState.handleNodeClick(node.id)
-                    }
-                }
-            }
+        if (node.occupant != null) {
+            Image(
+                painter = painterResource(id = gameState.getPlayerPieceRes(node.occupant)),
+                contentDescription = null,
+                modifier = Modifier.size(32.dp)
+            )
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(32.dp)
+                    .background(Color.LightGray, shape = CircleShape)
+            )
         }
     }
 }
@@ -462,7 +391,7 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             UMABALABA2Theme {
-                GameScreen(gameState)
+                UmlabalabaScreen(gameState)
             }
         }
     }
