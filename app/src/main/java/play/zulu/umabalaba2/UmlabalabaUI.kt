@@ -54,187 +54,198 @@ fun UmlabalabaScreen(gameState: GameState) {
             }
         }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color(0xFF1B120B))
-                .padding(12.dp)
-        ) {
-            // ===== TOP BAR =====
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color(0xFF1B120B))
+                    .padding(12.dp)
             ) {
-                IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                    Icon(
-                        Icons.Default.Menu,
-                        contentDescription = "Menu",
-                        tint = Color(0xFFD6B37A)
-                    )
-                }
-
-                Text(
-                    text = "PlayUMLABALABA",
-                    color = Color(0xFFD6B37A),
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold
-                )
-
-                Row {
-                    IconButton(onClick = { }) {
-                        Icon(
-                            Icons.Default.Chat,
-                            contentDescription = "Chat",
-                            tint = Color(0xFFD6B37A)
-                        )
-                    }
-
-                    IconButton(onClick = { }) {
-                        Icon(
-                            Icons.Default.Person,
-                            contentDescription = "Profile",
-                            tint = Color(0xFFD6B37A)
-                        )
-                    }
-                }
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // ===== CHAT BOX =====
-            ChatBox(modifier = Modifier.height(110.dp))
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // ===== MAIN CONTENT: BOARD + SIDE PANEL =====
-            Row(
-                modifier = Modifier.weight(1f)
-            ) {
-                // ===== BOARD =====
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
-                        .background(
-                            Color(0xFF8B5E3C),
-                            RoundedCornerShape(16.dp)
-                        )
-                        .padding(16.dp),
-                    contentAlignment = Alignment.Center
+                // ===== TOP BAR =====
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    UmlabalabaBoard(
-                        modifier = Modifier.aspectRatio(1f).fillMaxSize()
+                    IconButton(onClick = { scope.launch { drawerState.open() } }) {
+                        Icon(
+                            Icons.Default.Menu,
+                            contentDescription = "Menu",
+                            tint = Color(0xFFD6B37A)
+                        )
+                    }
+
+                    Text(
+                        text = "PlayUMLABALABA",
+                        color = Color(0xFFD6B37A),
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold
                     )
-                    
-                    // Render nodes on top of the board
-                    BoxWithConstraints(modifier = Modifier.aspectRatio(1f).fillMaxSize()) {
-                        val boardSize = maxWidth
-                        val step = boardSize / 6
-                        
-                        gameState.nodes.forEach { node ->
-                            Box(
-                                modifier = Modifier
-                                    .offset(
-                                        x = step * node.x - 20.dp,
-                                        y = step * node.y - 20.dp
-                                    )
-                            ) {
-                                BoardNode(
-                                    node = node, 
-                                    gameState = gameState,
-                                    isSelected = gameState.selectedNodeId == node.id
-                                ) {
-                                    gameState.handleNodeClick(node.id)
-                                }
-                            }
+
+                    Row {
+                        IconButton(onClick = { gameState.showChatsDropdown = true }) {
+                            Icon(
+                                Icons.Default.Chat,
+                                contentDescription = "Chat",
+                                tint = Color(0xFFD6B37A)
+                            )
+                        }
+
+                        IconButton(onClick = { }) {
+                            Icon(
+                                Icons.Default.Person,
+                                contentDescription = "Profile",
+                                tint = Color(0xFFD6B37A)
+                            )
                         }
                     }
                 }
 
-                Spacer(modifier = Modifier.width(12.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
-                // ===== SIDE PANEL =====
-                Column(
-                    modifier = Modifier.width(110.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+                // ===== CHAT BOX (Static/Current Context) =====
+                ChatBox(modifier = Modifier.height(110.dp))
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // ===== MAIN CONTENT: BOARD + SIDE PANEL =====
+                Row(
+                    modifier = Modifier.weight(1f)
                 ) {
-                    SideCard(
-                        title = "PHASE",
-                        content = if (gameState.mustRemovePiece) "SHOOT" else gameState.phase.name
+                    // ===== BOARD =====
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .background(
+                                Color(0xFF8B5E3C),
+                                RoundedCornerShape(16.dp)
+                            )
+                            .padding(16.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        UmlabalabaBoard(
+                            modifier = Modifier.aspectRatio(1f).fillMaxSize()
+                        )
+                        
+                        // Render nodes on top of the board
+                        BoxWithConstraints(modifier = Modifier.aspectRatio(1f).fillMaxSize()) {
+                            val boardSize = maxWidth
+                            val step = boardSize / 6
+                            
+                            gameState.nodes.forEach { node ->
+                                Box(
+                                    modifier = Modifier
+                                        .offset(
+                                            x = step * node.x - 20.dp,
+                                            y = step * node.y - 20.dp
+                                        )
+                                ) {
+                                    BoardNode(
+                                        node = node, 
+                                        gameState = gameState,
+                                        isSelected = gameState.selectedNodeId == node.id
+                                    ) {
+                                        gameState.handleNodeClick(node.id)
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(12.dp))
+
+                    // ===== SIDE PANEL =====
+                    Column(
+                        modifier = Modifier.width(110.dp),
+                        verticalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        SideCard(
+                            title = "PHASE",
+                            content = if (gameState.mustRemovePiece) "SHOOT" else gameState.phase.name
+                        )
+
+                        SideCard(
+                            title = "TURN",
+                            content = if (gameState.winner != null) "OVER" else gameState.getPlayerName(gameState.currentPlayer).uppercase()
+                        )
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // ===== PLAYER INDICATORS (Row of 2) =====
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    val p1Active = gameState.currentPlayer == Player.PLAYER_1
+                    val p2Active = gameState.currentPlayer == Player.PLAYER_2
+
+                    PlayerPanel(
+                        modifier = Modifier.weight(1f),
+                        name = gameState.player1Name,
+                        pieces = if (gameState.phase == GamePhase.PLACEMENT) 
+                            gameState.piecesToPlace[Player.PLAYER_1] ?: 0 
+                            else gameState.nodes.count { it.occupant == Player.PLAYER_1 },
+                        mills = 0,
+                        isActive = p1Active,
+                        pieceRes = gameState.getPlayerPieceRes(Player.PLAYER_1),
+                        textColor = gameState.getPlayerTextColor(Player.PLAYER_1)
                     )
 
-                    SideCard(
-                        title = "TURN",
-                        content = if (gameState.winner != null) "OVER" else gameState.getPlayerName(gameState.currentPlayer).uppercase()
+                    PlayerPanel(
+                        modifier = Modifier.weight(1f),
+                        name = gameState.player2Name,
+                        pieces = if (gameState.phase == GamePhase.PLACEMENT) 
+                            gameState.piecesToPlace[Player.PLAYER_2] ?: 0 
+                            else gameState.nodes.count { it.occupant == Player.PLAYER_2 },
+                        mills = 0,
+                        isActive = p2Active,
+                        pieceRes = gameState.getPlayerPieceRes(Player.PLAYER_2),
+                        textColor = gameState.getPlayerTextColor(Player.PLAYER_2)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // ===== ACTION BUTTONS =====
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceEvenly
+                ) {
+                    GameButton("NEW") { gameState.showNameDialog = true }
+                    GameButton("UNDO") { }
+                    GameButton("PASS") { }
+                    GameButton("RESIGN") { }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // ===== BOTTOM INFO CARDS =====
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    BottomInfoCard(
+                        modifier = Modifier.weight(1f),
+                        title = "MODE",
+                        content = gameState.gameMode.name
+                    )
+                    BottomInfoCard(
+                        modifier = Modifier.weight(1f),
+                        title = "STATUS",
+                        content = gameState.connectionStatus
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // ===== PLAYER INDICATORS (Row of 2) =====
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                val p1Active = gameState.currentPlayer == Player.PLAYER_1
-                val p2Active = gameState.currentPlayer == Player.PLAYER_2
-
-                PlayerPanel(
-                    modifier = Modifier.weight(1f),
-                    name = gameState.player1Name,
-                    pieces = if (gameState.phase == GamePhase.PLACEMENT) 
-                        gameState.piecesToPlace[Player.PLAYER_1] ?: 0 
-                        else gameState.nodes.count { it.occupant == Player.PLAYER_1 },
-                    mills = 0,
-                    isActive = p1Active,
-                    pieceRes = gameState.getPlayerPieceRes(Player.PLAYER_1),
-                    textColor = gameState.getPlayerTextColor(Player.PLAYER_1)
-                )
-
-                PlayerPanel(
-                    modifier = Modifier.weight(1f),
-                    name = gameState.player2Name,
-                    pieces = if (gameState.phase == GamePhase.PLACEMENT) 
-                        gameState.piecesToPlace[Player.PLAYER_2] ?: 0 
-                        else gameState.nodes.count { it.occupant == Player.PLAYER_2 },
-                    mills = 0,
-                    isActive = p2Active,
-                    pieceRes = gameState.getPlayerPieceRes(Player.PLAYER_2),
-                    textColor = gameState.getPlayerTextColor(Player.PLAYER_2)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // ===== ACTION BUTTONS =====
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                GameButton("NEW") { gameState.showNameDialog = true }
-                GameButton("UNDO") { }
-                GameButton("PASS") { }
-                GameButton("RESIGN") { }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // ===== BOTTOM INFO CARDS =====
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                BottomInfoCard(
-                    modifier = Modifier.weight(1f),
-                    title = "MODE",
-                    content = gameState.gameMode.name
-                )
-                BottomInfoCard(
-                    modifier = Modifier.weight(1f),
-                    title = "STATUS",
-                    content = gameState.connectionStatus
+            // ===== OVERLAY: CHATS DROPDOWN MENU =====
+            if (gameState.showChatsDropdown) {
+                ChatsDropdownMenu(
+                    onClose = { gameState.showChatsDropdown = false },
+                    onChatClick = { /* Handle chat click */ },
+                    onAddChatClick = { /* Handle add chat */ }
                 )
             }
         }

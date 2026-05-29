@@ -75,6 +75,9 @@ class GameState {
     // Observable name dialog state
     var showNameDialog by mutableStateOf(false)
 
+    // Observable chats dropdown state
+    var showChatsDropdown by mutableStateOf(false)
+
     // Connection states
     var gameMode by mutableStateOf(GameMode.LOCAL)
     var isHost by mutableStateOf(true)
