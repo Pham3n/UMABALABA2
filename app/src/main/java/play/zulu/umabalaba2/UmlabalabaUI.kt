@@ -59,6 +59,7 @@ fun UmlabalabaScreen(gameState: GameState) {
                 modifier = Modifier
                     .fillMaxSize()
                     .background(Color(0xFF1B120B))
+                    .statusBarsPadding()
                     .padding(12.dp)
             ) {
                 // ===== TOP BAR =====

@@ -32,29 +32,16 @@ fun ChatsDropdownMenu(
     onChatClick: (ChatItem) -> Unit = {},
     onAddChatClick: () -> Unit = {}
 ) {
-
     val defaultChats = listOf(
         ChatItem(
-            title = "League Chat",
-            subtitle = "Default",
-            icon = Icons.Default.EmojiEvents,
-            iconColor = Color(0xFF8B3A1A)
-        ),
-        ChatItem(
             title = "Global Chat",
-            subtitle = "Default",
+            subtitle = "Public",
             icon = Icons.Default.Shield,
             iconColor = Color(0xFF9C6B28)
         ),
         ChatItem(
-            title = "Room Chat",
-            subtitle = "Default",
-            icon = Icons.Default.Groups,
-            iconColor = Color(0xFF006D6F)
-        ),
-        ChatItem(
             title = "Announcements",
-            subtitle = "Default",
+            subtitle = "Updates",
             icon = Icons.Default.Campaign,
             iconColor = Color(0xFF5B3C6F)
         )
@@ -63,27 +50,9 @@ fun ChatsDropdownMenu(
     val userChats = listOf(
         ChatItem(
             title = "Friends",
-            subtitle = "Private • 3 members",
+            subtitle = "3 members",
             icon = Icons.Default.Groups,
             iconColor = Color(0xFF1C6E6A)
-        ),
-        ChatItem(
-            title = "Khasina Players",
-            subtitle = "Private • 8 members",
-            icon = Icons.Default.Person,
-            iconColor = Color(0xFF7A431F)
-        ),
-        ChatItem(
-            title = "Umlabalaba Club",
-            subtitle = "Private • 12 members",
-            icon = Icons.Default.SportsEsports,
-            iconColor = Color(0xFF244E7A)
-        ),
-        ChatItem(
-            title = "Strategy Masters",
-            subtitle = "Private • 5 members",
-            icon = Icons.Default.Psychology,
-            iconColor = Color(0xFF476B2D)
         )
     )
 
@@ -91,50 +60,38 @@ fun ChatsDropdownMenu(
         modifier = Modifier
             .fillMaxSize()
             .background(Color.Black.copy(alpha = 0.45f))
-            .clickable { onClose() } // Close when clicking background
+            .clickable { onClose() }
     ) {
-
         Card(
             modifier = Modifier
-                .fillMaxWidth(0.92f)
-                .fillMaxHeight(0.86f)
+                .fillMaxWidth(0.85f)
+                .fillMaxHeight(0.65f)
                 .align(Alignment.TopCenter)
-                .padding(top = 70.dp)
-                .clickable(enabled = false) { }, // Prevent closing when clicking card
-            shape = RoundedCornerShape(28.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF24130C)
-            ),
-            elevation = CardDefaults.cardElevation(
-                defaultElevation = 14.dp
-            )
+                .padding(top = 80.dp)
+                .clickable(enabled = false) { },
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color(0xFF24130C)),
+            elevation = CardDefaults.cardElevation(defaultElevation = 12.dp)
         ) {
-
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(24.dp)
+                    .padding(20.dp)
             ) {
-
                 // ===== HEADER =====
-
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-
                     Text(
                         text = "CHATS",
                         color = Color(0xFFE7C58A),
-                        fontSize = 34.sp,
+                        fontSize = 24.sp,
                         fontWeight = FontWeight.Bold
                     )
 
-                    IconButton(
-                        onClick = onClose
-                    ) {
-
+                    IconButton(onClick = onClose) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = null,
@@ -143,114 +100,62 @@ fun ChatsDropdownMenu(
                     }
                 }
 
-                Spacer(modifier = Modifier.height(12.dp))
-
-                HorizontalDivider(
-                    color = Color(0xFF5A3822),
-                    thickness = 1.dp
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // ===== DEFAULT CHATS =====
-
-                Text(
-                    text = "DEFAULT CHATS",
-                    color = Color(0xFFE7C58A),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                defaultChats.forEach { chat ->
-
-                    ChatRow(
-                        chat = chat,
-                        onClick = {
-                            onChatClick(chat)
-                        }
-                    )
-                }
-
+                Spacer(modifier = Modifier.height(10.dp))
+                HorizontalDivider(color = Color(0xFF5A3822), thickness = 1.dp)
                 Spacer(modifier = Modifier.height(16.dp))
 
-                HorizontalDivider(
-                    color = Color(0xFF5A3822),
-                    thickness = 1.dp
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                // ===== USER CHATS =====
-
-                Text(
-                    text = "YOUR CHATS",
-                    color = Color(0xFFE7C58A),
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                LazyColumn(
-                    modifier = Modifier.weight(1f)
-                ) {
-
-                    items(userChats) { chat ->
-
-                        ChatRow(
-                            chat = chat,
-                            onClick = {
-                                onChatClick(chat)
-                            }
+                // ===== CHATS LIST =====
+                LazyColumn(modifier = Modifier.weight(1f)) {
+                    item {
+                        Text(
+                            text = "OFFICIAL",
+                            color = Color(0xFFE7C58A),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    items(defaultChats) { chat ->
+                        ChatRow(chat = chat, onClick = { onChatClick(chat) })
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = "YOUR CHATS",
+                            color = Color(0xFFE7C58A),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 14.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    items(userChats) { chat ->
+                        ChatRow(chat = chat, onClick = { onChatClick(chat) })
                     }
                 }
 
-                Spacer(modifier = Modifier.height(18.dp))
+                Spacer(modifier = Modifier.height(12.dp))
 
                 // ===== ADD CHAT BUTTON =====
-
                 Button(
                     onClick = onAddChatClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(78.dp),
-                    shape = RoundedCornerShape(22.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = Color(0xFF8B5E3C)
-                    )
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8B5E3C))
                 ) {
-
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-
+                    Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             imageVector = Icons.Default.Add,
                             contentDescription = null,
                             tint = Color(0xFFEFD7A5),
-                            modifier = Modifier.size(34.dp)
+                            modifier = Modifier.size(24.dp)
                         )
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        Column {
-
-                            Text(
-                                text = "ADD CHAT",
-                                color = Color(0xFFEFD7A5),
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 22.sp
-                            )
-
-                            Text(
-                                text = "Create a chat by exact name",
-                                color = Color(0xFFF5E4C5),
-                                fontSize = 14.sp
-                            )
-                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "NEW CHAT",
+                            color = Color(0xFFEFD7A5),
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 16.sp
+                        )
                     }
                 }
             }
@@ -259,92 +164,54 @@ fun ChatsDropdownMenu(
 }
 
 @Composable
-fun ChatRow(
-    chat: ChatItem,
-    onClick: () -> Unit
-) {
-
-    Card(
+fun ChatRow(chat: ChatItem, onClick: () -> Unit) {
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 6.dp)
-            .clickable {
-                onClick()
-            },
-        colors = CardDefaults.cardColors(
-            containerColor = Color.Transparent
-        )
+            .padding(vertical = 4.dp)
+            .clickable { onClick() },
+        color = Color.Transparent
     ) {
-
         Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(
-                    vertical = 10.dp,
-                    horizontal = 4.dp
-                ),
+            modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-
-            // ===== ICON =====
-
             Box(
                 modifier = Modifier
-                    .size(58.dp)
-                    .background(
-                        color = chat.iconColor,
-                        shape = CircleShape
-                    ),
+                    .size(44.dp)
+                    .background(color = chat.iconColor, shape = CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-
                 Icon(
                     imageVector = chat.icon,
                     contentDescription = null,
                     tint = Color.White,
-                    modifier = Modifier.size(28.dp)
+                    modifier = Modifier.size(20.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.width(18.dp))
+            Spacer(modifier = Modifier.width(12.dp))
 
-            // ===== CHAT INFO =====
-
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = chat.title,
                     color = Color.White,
-                    fontSize = 24.sp,
+                    fontSize = 18.sp,
                     fontWeight = FontWeight.Medium
                 )
-
-                Spacer(modifier = Modifier.height(2.dp))
-
                 Text(
                     text = chat.subtitle,
                     color = Color(0xFFD8B073),
-                    fontSize = 16.sp
+                    fontSize = 13.sp
                 )
             }
 
-            // ===== OPTIONS BUTTON =====
-
-            IconButton(
-                onClick = {
-                    // future chat options menu
-                }
-            ) {
-
-                Icon(
-                    imageVector = Icons.Default.ChevronRight,
-                    contentDescription = null,
-                    tint = Color(0xFFE7C58A),
-                    modifier = Modifier.size(34.dp)
-                )
-            }
+            Icon(
+                imageVector = Icons.Default.ChevronRight,
+                contentDescription = null,
+                tint = Color(0xFFE7C58A),
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }
