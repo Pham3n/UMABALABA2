@@ -60,13 +60,50 @@ fun UmlabalabaScreen(gameState: GameState) {
                 .background(Color(0xFF1B120B))
                 .padding(12.dp)
         ) {
-            // ===== TOP SECTION: CHAT BOX & MENU =====
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // ===== TOP BAR =====
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 IconButton(onClick = { scope.launch { drawerState.open() } }) {
-                    Icon(Icons.Default.Menu, contentDescription = "Menu", tint = Color(0xFFD6B37A))
+                    Icon(
+                        Icons.Default.Menu,
+                        contentDescription = "Menu",
+                        tint = Color(0xFFD6B37A)
+                    )
                 }
-                ChatBox(modifier = Modifier.weight(1f).height(110.dp))
+
+                Text(
+                    text = "PlayUMLABALABA",
+                    color = Color(0xFFD6B37A),
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold
+                )
+
+                Row {
+                    IconButton(onClick = { }) {
+                        Icon(
+                            Icons.Default.Chat,
+                            contentDescription = "Chat",
+                            tint = Color(0xFFD6B37A)
+                        )
+                    }
+
+                    IconButton(onClick = { }) {
+                        Icon(
+                            Icons.Default.Person,
+                            contentDescription = "Profile",
+                            tint = Color(0xFFD6B37A)
+                        )
+                    }
+                }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // ===== CHAT BOX =====
+            ChatBox(modifier = Modifier.height(110.dp))
 
             Spacer(modifier = Modifier.height(12.dp))
 
