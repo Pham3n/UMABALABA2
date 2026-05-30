@@ -138,8 +138,8 @@ fun UmlabalabaScreen(gameState: GameState) {
                                 Box(
                                     modifier = Modifier
                                         .offset(
-                                            x = step * node.x - 20.dp,
-                                            y = step * node.y - 20.dp
+                                            x = step * node.x - 12.dp, // Centered based on 24.dp container
+                                            y = step * node.y - 12.dp
                                         )
                                 ) {
                                     BoardNode(

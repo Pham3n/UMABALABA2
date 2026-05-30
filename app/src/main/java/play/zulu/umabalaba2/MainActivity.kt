@@ -336,7 +336,7 @@ fun BoardNode(node: Node, gameState: GameState, isSelected: Boolean, onClick: ()
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(40.dp) // Slightly larger to allow for selection ring
+            .size(24.dp) // Reduced container size
             .clickable { onClick() }
     ) {
         if (isSelected) {
@@ -353,13 +353,13 @@ fun BoardNode(node: Node, gameState: GameState, isSelected: Boolean, onClick: ()
             Image(
                 painter = painterResource(id = gameState.getPlayerPieceRes(node.occupant)),
                 contentDescription = null,
-                modifier = Modifier.size(32.dp)
+                modifier = Modifier.size(16.dp) // Piece size reduced by half (from 32.dp)
             )
         } else {
             Box(
                 modifier = Modifier
-                    .size(32.dp)
-                    .background(Color.LightGray, shape = CircleShape)
+                    .size(16.dp)
+                    .background(Color.Transparent, shape = CircleShape) // Placeholder made invisible
             )
         }
     }
