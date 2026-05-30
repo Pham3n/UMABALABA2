@@ -92,7 +92,7 @@ fun UmlabalabaScreen(gameState: GameState) {
                             )
                         }
 
-                        IconButton(onClick = { }) {
+                        IconButton(onClick = { gameState.showProfileDropdown = true }) {
                             Icon(
                                 Icons.Default.Person,
                                 contentDescription = "Profile",
@@ -247,6 +247,13 @@ fun UmlabalabaScreen(gameState: GameState) {
                     onClose = { gameState.showChatsDropdown = false },
                     onChatClick = { /* Handle chat click */ },
                     onAddChatClick = { /* Handle add chat */ }
+                )
+            }
+
+            // ===== OVERLAY: PROFILE DROPDOWN MENU =====
+            if (gameState.showProfileDropdown) {
+                ProfileDropdownMenu(
+                    onClose = { gameState.showProfileDropdown = false }
                 )
             }
 

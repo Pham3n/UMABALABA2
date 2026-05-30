@@ -78,6 +78,9 @@ class GameState {
     // Observable chats dropdown state
     var showChatsDropdown by mutableStateOf(false)
 
+    // Observable profile dropdown state
+    var showProfileDropdown by mutableStateOf(false)
+
     // Connection states
     var gameMode by mutableStateOf(GameMode.LOCAL)
     var isHost by mutableStateOf(true)
