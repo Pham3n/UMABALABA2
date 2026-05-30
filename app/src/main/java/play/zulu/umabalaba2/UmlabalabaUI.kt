@@ -249,6 +249,32 @@ fun UmlabalabaScreen(gameState: GameState) {
                     onAddChatClick = { /* Handle add chat */ }
                 )
             }
+
+            // ===== OVERLAY: CONNECTION ERROR =====
+            if (gameState.showConnectionError) {
+                LaunchedEffect(Unit) {
+                    kotlinx.coroutines.delay(3000)
+                    gameState.showConnectionError = false
+                }
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(bottom = 100.dp),
+                    contentAlignment = Alignment.BottomCenter
+                ) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Color.Red.copy(alpha = 0.8f)),
+                        shape = RoundedCornerShape(8.dp)
+                    ) {
+                        Text(
+                            "CONNECTION ERROR",
+                            color = Color.White,
+                            modifier = Modifier.padding(horizontal = 24.dp, vertical = 12.dp),
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
+            }
         }
     }
 }
@@ -333,11 +359,52 @@ fun SidebarContent(gameState: GameState) {
             icon = Icons.Default.Public,
             isSelected = gameState.gameMode == GameMode.ONLINE,
             onClick = {
-                gameState.gameMode = GameMode.ONLINE
-                gameState.onlineManager.connect()
-                expandedMode = null
+                expandedMode = if (expandedMode == GameMode.ONLINE) null else GameMode.ONLINE
             }
         )
+        AnimatedVisibility(visible = expandedMode == GameMode.ONLINE) {
+            Column(modifier = Modifier.padding(start = 32.dp)) {
+                SubModeItem("Join Server") {
+                    gameState.onlineManager.connect(onSuccess = {
+                        gameState.gameMode = GameMode.ONLINE
+                        gameState.connectionStatus = "Online: Connected"
+                    }, onFailure = {
+                        gameState.showConnectionError = true
+                    })
+                }
+            }
+        }
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        HorizontalDivider(color = Color(0xFF5A3822), thickness = 1.dp)
+        
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            Text("CONNECT TO SERVER", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+            Switch(
+                checked = gameState.onlineConnected,
+                onCheckedChange = { isChecked ->
+                    if (isChecked) {
+                        gameState.onlineManager.connect(onSuccess = {
+                            gameState.onlineConnected = true
+                        }, onFailure = {
+                            gameState.showConnectionError = true
+                        })
+                    } else {
+                        gameState.onlineConnected = false
+                        gameState.connectionStatus = "Online: Disconnected"
+                    }
+                },
+                colors = SwitchDefaults.colors(
+                    checkedThumbColor = Color(0xFFD6B37A),
+                    checkedTrackColor = Color(0xFF5A3822)
+                )
+            )
+        }
     }
 }
 

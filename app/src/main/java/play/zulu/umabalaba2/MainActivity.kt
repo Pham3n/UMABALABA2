@@ -82,6 +82,8 @@ class GameState {
     var gameMode by mutableStateOf(GameMode.LOCAL)
     var isHost by mutableStateOf(true)
     var connectionStatus by mutableStateOf("Local Game")
+    var showConnectionError by mutableStateOf(false)
+    var onlineConnected by mutableStateOf(false)
 
     // Connection Managers
     lateinit var bluetoothManager: BluetoothManager
