@@ -74,13 +74,3 @@ class OnlineServerManager(private val gameState: GameState) {
         })
     }
 }
-
-    fun submitMove(fromId: Int, toId: Int) {
-        // Send move to server for validation
-        // Server will respond with updated board state or error
-    }
-
-    fun submitPlacement(nodeId: Int) {
-        // Send placement to server for validation
-    }
-}
