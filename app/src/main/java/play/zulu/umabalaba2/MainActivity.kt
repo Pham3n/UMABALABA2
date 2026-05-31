@@ -16,7 +16,17 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.*
 import play.zulu.umabalaba2.ui.theme.UMABALABA2Theme
+
+// Data class for Chat items
+data class ChatItem(
+    val title: String,
+    val subtitle: String,
+    val icon: androidx.compose.ui.graphics.vector.ImageVector,
+    val iconColor: Color
+)
 
 // Data class representing a single position (node) on the Umabalaba board.
 // Node properties are immutable; we update state by replacing Node instances in the list.
@@ -88,6 +98,9 @@ class GameState {
     var showConnectionError by mutableStateOf(false)
     var onlineConnected by mutableStateOf(false)
 
+    // Chat State
+    val userChats = mutableStateListOf<ChatItem>()
+
     // Connection Managers
     lateinit var bluetoothManager: BluetoothManager
     lateinit var wifiManager: WiFiManager
@@ -126,6 +139,15 @@ class GameState {
         ).shuffled()
         player1PieceRes = pieces[0]
         player2PieceRes = pieces[1]
+        
+        // Initialize user chats similar to KHASINA
+        userChats.addAll(listOf(
+            ChatItem("Friends", "Private • 3 members", Icons.Default.Groups, Color(0xFF1C6E6A)),
+            ChatItem("Khasina Players", "Private • 8 members", Icons.Default.Person, Color(0xFF7A431F)),
+            ChatItem("Umlabalaba Club", "Private • 12 members", Icons.Default.SportsEsports, Color(0xFF244E7A)),
+            ChatItem("Strategy Masters", "Private • 5 members", Icons.Default.Psychology, Color(0xFF476B2D))
+        ))
+
         initializeBoard()
     }
 

@@ -244,6 +244,7 @@ fun UmlabalabaScreen(gameState: GameState) {
             // ===== OVERLAY: CHATS DROPDOWN MENU =====
             if (gameState.showChatsDropdown) {
                 ChatsDropdownMenu(
+                    gameState = gameState,
                     onClose = { gameState.showChatsDropdown = false },
                     onChatClick = { /* Handle chat click */ },
                     onAddChatClick = { /* Handle add chat */ }

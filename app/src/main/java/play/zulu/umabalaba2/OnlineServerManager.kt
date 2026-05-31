@@ -3,74 +3,79 @@ package play.zulu.umabalaba2
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import okhttp3.*
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.RequestBody.Companion.toRequestBody
-import java.io.IOException
 
 /**
- * Manager for Online play connecting to a Python backend.
+ * Manager for Online play connecting to a Python backend using raw Sockets (aligned with KHASINA).
  */
 class OnlineServerManager(private val gameState: GameState) {
 
-    private val client = OkHttpClient()
-    private val JSON = "application/json; charset=utf-8".toMediaType()
-    private val SERVER_URL = "http://your-python-server-ip:8000" // Aligned with typical FastAPI port
+    private var pendingOnSuccess: (() -> Unit)? = null
+    private var pendingOnFailure: (() -> Unit)? = null
+
+    private val onlineService = OnlineService(
+        onConnected = {
+            Handler(Looper.getMainLooper()).post {
+                gameState.onlineConnected = true
+                gameState.connectionStatus = "Online: Connected"
+                pendingOnSuccess?.invoke()
+                pendingOnSuccess = null
+                pendingOnFailure = null
+            }
+        },
+        onReceived = { message ->
+            Handler(Looper.getMainLooper()).post {
+                handleReceivedMessage(message)
+            }
+        }
+    )
+
+    private val SERVER_IP = "10.0.2.2" // Emulator default host IP
+    private val SERVER_PORT = 9999
 
     fun connect(onSuccess: () -> Unit = {}, onFailure: () -> Unit = {}) {
-        gameState.connectionStatus = "Online: Connecting..."
+        pendingOnSuccess = onSuccess
+        pendingOnFailure = onFailure
         
-        val request = Request.Builder()
-            .url("$SERVER_URL/health") // Assuming a health check endpoint
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                Handler(Looper.getMainLooper()).post {
-                    onFailure()
-                    gameState.connectionStatus = "Online: Connection Failed"
+        gameState.connectionStatus = "Online: Connecting..."
+        try {
+            onlineService.connect(SERVER_IP, SERVER_PORT)
+            
+            // Timeout if not connected in 5 seconds
+            Handler(Looper.getMainLooper()).postDelayed({
+                if (!gameState.onlineConnected) {
+                    onlineService.stop()
+                    gameState.connectionStatus = "Online: Timeout"
+                    pendingOnFailure?.invoke()
+                    pendingOnSuccess = null
+                    pendingOnFailure = null
                 }
-            }
+            }, 5000)
+            
+        } catch (e: Exception) {
+            Log.e("OnlineServer", "Connection failed", e)
+            gameState.connectionStatus = "Online: Error"
+            onFailure()
+        }
+    }
 
-            override fun onResponse(call: Call, response: Response) {
-                Handler(Looper.getMainLooper()).post {
-                    if (response.isSuccessful) {
-                        onSuccess()
-                        gameState.connectionStatus = "Online: Ready"
-                    } else {
-                        onFailure()
-                        gameState.connectionStatus = "Online: Server Error"
-                    }
-                }
-            }
-        })
+    fun disconnect() {
+        onlineService.stop()
+        gameState.onlineConnected = false
+        gameState.connectionStatus = "Online: Disconnected"
     }
 
     fun submitMove(fromId: Int, toId: Int) {
-        val json = """{"action": "move", "payload": {"from": $fromId, "to": $toId}}"""
-        sendAction(json)
+        val data = "MOVE:$fromId:$toId"
+        onlineService.send(data)
     }
 
     fun submitPlacement(nodeId: Int) {
-        val json = """{"action": "place", "payload": {"position": $nodeId}}"""
-        sendAction(json)
+        val data = "PLACE:$nodeId"
+        onlineService.send(data)
     }
 
-    private fun sendAction(json: String) {
-        val body = json.toRequestBody(JSON)
-        val request = Request.Builder()
-            .url("$SERVER_URL/game/action")
-            .post(body)
-            .build()
-
-        client.newCall(request).enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                Log.e("OnlineServer", "Action failed", e)
-            }
-
-            override fun onResponse(call: Call, response: Response) {
-                // Parse response and update gameState.nodes
-            }
-        })
+    private fun handleReceivedMessage(message: String) {
+        Log.d("OnlineServer", "Received: $message")
+        // Logic to update gameState based on server messages (e.g. SYNC:...)
     }
 }

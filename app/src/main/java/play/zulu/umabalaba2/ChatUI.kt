@@ -19,15 +19,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
-data class ChatItem(
-    val title: String,
-    val subtitle: String,
-    val icon: ImageVector,
-    val iconColor: Color
-)
-
 @Composable
 fun ChatsDropdownMenu(
+    gameState: GameState,
     onClose: () -> Unit = {},
     onChatClick: (ChatItem) -> Unit = {},
     onAddChatClick: () -> Unit = {}
@@ -47,14 +41,7 @@ fun ChatsDropdownMenu(
         )
     )
 
-    val userChats = listOf(
-        ChatItem(
-            title = "Friends",
-            subtitle = "3 members",
-            icon = Icons.Default.Groups,
-            iconColor = Color(0xFF1C6E6A)
-        )
-    )
+    val userChats = gameState.userChats
 
     Box(
         modifier = Modifier
